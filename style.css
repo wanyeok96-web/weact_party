@@ -1,4 +1,14 @@
+@font-face {
+  font-family: "Hakgyoansim Badasseugi";
+  src: url("./fonts/badasseugi-b.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
+  --font-body: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-display: "Hakgyoansim Badasseugi", var(--font-body);
+
   --teal: #086872;
   --teal-deep: #005b69;
   --navy: #064265;
@@ -39,11 +49,26 @@ body {
   flex-direction: column;
   background: var(--bg);
   color: var(--text);
-  font-family: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.6;
   word-break: keep-all;
   -webkit-font-smoothing: antialiased;
+}
+
+.hero__title,
+.intro__desc,
+.question__text,
+.loading__text,
+.type-card__name,
+.type-card__tagline,
+.section-title,
+.match-card__name,
+.match-card__score,
+.dog__name,
+.dog__section h4,
+.save__title {
+  font-family: var(--font-display);
 }
 
 body.is-locked {
@@ -1040,6 +1065,7 @@ body[data-screen="start"] .topbar__logo svg {
   border-radius: 999px;
   background: var(--navy);
   color: #fff;
+  font-family: var(--font-body);
   font-size: 12px;
   font-weight: 700;
   vertical-align: middle;

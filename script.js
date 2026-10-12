@@ -1853,6 +1853,10 @@ function canvasFont(weight, size) {
   return `${weight} ${size}px "Pretendard Variable", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
 }
 
+function displayFont(size) {
+  return `${size}px "Hakgyoansim Badasseugi", "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif`;
+}
+
 function loadImage(src) {
   return new Promise((resolve) => {
     const image = new Image();
@@ -1905,7 +1909,10 @@ async function drawResultImage() {
     ...animals.flatMap((a) => [a.name, animalMeta(a), ...a.keywords]),
   ].join(' ');
   if (document.fonts) {
-    await Promise.all([600, 800].map((w) => document.fonts.load(canvasFont(w, 40), allText))).catch(() => {});
+    await Promise.all([
+      ...[600, 800].map((w) => document.fonts.load(canvasFont(w, 40), allText)),
+      document.fonts.load(displayFont(40), allText),
+    ]).catch(() => {});
   }
 
   const [character, ...photos] = await Promise.all([
@@ -1933,7 +1940,7 @@ async function drawResultImage() {
   ctx.font = canvasFont(700, 30);
   ctx.fillText('위액트 입양파티', W / 2, 108);
   ctx.fillStyle = '#ffffff';
-  ctx.font = canvasFont(800, 46);
+  ctx.font = displayFont(48);
   ctx.fillText('나의 운명 친구 찾기', W / 2, 166);
 
   // 보호자 유형 카드
@@ -1955,16 +1962,16 @@ async function drawResultImage() {
   });
 
   ctx.fillStyle = '#064265';
-  ctx.font = canvasFont(800, 80);
+  ctx.font = displayFont(80);
   ctx.fillText(type.name, W / 2, 962);
   ctx.fillStyle = '#086872';
-  ctx.font = canvasFont(600, 36);
+  ctx.font = displayFont(36);
   ctx.fillText(fitText(ctx, type.tagline, 880), W / 2, 1010);
 
   // 운명 친구 TOP 3
   ctx.textAlign = 'left';
   ctx.fillStyle = '#ffffff';
-  ctx.font = canvasFont(800, 50);
+  ctx.font = displayFont(50);
   ctx.fillText(`나의 운명 ${noun}` + (matches.length > 1 ? ` TOP ${matches.length}` : ''), 60, 1125);
 
   matches.forEach((match, i) => {
@@ -1991,7 +1998,7 @@ async function drawResultImage() {
 
     ctx.textAlign = 'right';
     ctx.fillStyle = '#086872';
-    ctx.font = canvasFont(800, 52);
+    ctx.font = displayFont(52);
     ctx.fillText(`${match.percent}%`, right, y + 78);
     const percentWidth = ctx.measureText(`${match.percent}%`).width;
     ctx.fillStyle = '#5b6b70';
@@ -2000,7 +2007,7 @@ async function drawResultImage() {
 
     ctx.textAlign = 'left';
     ctx.fillStyle = '#16282f';
-    ctx.font = canvasFont(800, 50);
+    ctx.font = displayFont(50);
     ctx.fillText(fitText(ctx, animal.name, 420), 276, y + 78);
     ctx.fillStyle = '#5b6b70';
     ctx.font = canvasFont(500, 28);
