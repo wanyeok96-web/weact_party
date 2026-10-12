@@ -849,17 +849,202 @@ button {
   background: var(--teal);
 }
 
+.dog__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.species-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.match-card__name .species-tag {
+  margin-left: 6px;
+  background: var(--teal-50);
+  color: var(--teal-deep);
+}
+
+.dog__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dog__facts div {
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.dog__facts dt {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.dog__facts dd {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dog__section {
+  margin-top: 28px;
+}
+
+.dog__section h4 {
+  margin: 0 0 10px;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.radar svg {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.radar__grid {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.radar__grid--outer {
+  fill: var(--teal-50);
+  fill-opacity: 0.5;
+}
+
+.radar__spoke {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.radar__shape {
+  fill: var(--teal);
+  fill-opacity: 0.28;
+  stroke: var(--teal);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  transform-origin: 180px 136px;
+  animation: radar-in 0.5s ease;
+}
+
+.radar__dot {
+  fill: #fff;
+  stroke: var(--teal);
+  stroke-width: 2.5;
+}
+
+.radar__label {
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--text-sub);
+}
+
+.radar__value {
+  font-size: 16px;
+  font-weight: 800;
+  fill: var(--teal-deep);
+}
+
+@keyframes radar-in {
+  from { transform: scale(0.2); opacity: 0; }
+}
+
+.radar__note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-sub);
+  text-align: center;
+}
+
 .dog__likes {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 6px 12px;
-  margin-top: 16px;
-  font-size: 14px;
+  gap: 8px 14px;
+  font-size: 15px;
 }
 
 .dog__likes dt {
   font-weight: 700;
-  color: var(--text-sub);
+  color: var(--teal-deep);
+}
+
+.dog__details {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.detail h5 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--teal-deep);
+}
+
+.detail p {
+  margin-top: 2px;
+  font-size: 15px;
+}
+
+.dog__rescue {
+  margin-top: 24px;
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.dog__rescue summary {
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy);
+  cursor: pointer;
+}
+
+.dog__rescue p {
+  padding: 0 16px 16px;
+  font-size: 15px;
+}
+
+.dog__profile-link {
+  display: block;
+  margin-top: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--teal);
+  text-align: right;
+  text-decoration: none;
+}
+
+.match-note {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--teal-50);
+}
+
+.match-note p {
+  font-size: 14px;
+  color: var(--teal-deep);
+}
+
+.match-note .btn {
+  width: 100%;
+  margin-top: 12px;
 }
 
 .dog__actions {
