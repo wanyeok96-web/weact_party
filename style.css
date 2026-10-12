@@ -749,6 +749,56 @@ button {
   margin-top: 24px;
 }
 
+.result__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btn--navy {
+  background: var(--navy);
+  color: #fff;
+}
+
+.save__title {
+  padding: 22px 22px 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.save__preview {
+  display: grid;
+  place-items: center;
+  min-height: 300px;
+  margin-top: 16px;
+  padding: 0 22px;
+}
+
+.save__status {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--teal-deep);
+  text-align: center;
+}
+
+.save__image {
+  width: auto;
+  max-width: 100%;
+  max-height: 58vh;
+  max-height: 58dvh;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.save__hint {
+  margin-top: 12px;
+  padding: 0 22px;
+  font-size: 13px;
+  color: var(--text-sub);
+  text-align: center;
+}
+
 /* ---------- Modal ---------- */
 
 .modal {

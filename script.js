@@ -1407,11 +1407,13 @@ function render() {
   const [screen, param] = location.hash.slice(1).split('/');
 
   if (screen === 'survey') return renderSurvey(param);
-  if (screen === 'result' || screen === 'friend') {
+  if (screen === 'result' || screen === 'friend' || screen === 'save') {
     if (!state.result) return navigate('start', { replace: true });
     renderResult();
     if (screen === 'friend' && findAnimal(param)) openModal(findAnimal(param));
     else closeModal();
+    if (screen === 'save') openSaveSheet();
+    else closeSaveSheet();
     return;
   }
   showScreen('start');
@@ -1421,7 +1423,10 @@ function showScreen(name) {
   Object.entries(screens).forEach(([key, node]) => {
     node.hidden = key !== name;
   });
-  if (name !== 'result') closeModal();
+  if (name !== 'result') {
+    closeModal();
+    closeSaveSheet();
+  }
   window.scrollTo(0, 0);
 }
 
@@ -1829,6 +1834,262 @@ function updateGalleryCount() {
   $('.gallery__count', modal.node).textContent = `${Math.min(index, total)} / ${total}`;
 }
 
+/* ---------- 결과 이미지 (1080×1920, 스토리 비율) ---------- */
+
+const saveSheet = { node: null, blob: null, url: null, result: null };
+
+function canvasFont(weight, size) {
+  return `${weight} ${size}px "Pretendard Variable", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
+}
+
+function loadImage(src) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = src;
+  });
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function fitText(ctx, text, maxWidth) {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let cut = text;
+  while (cut.length > 1 && ctx.measureText(`${cut}…`).width > maxWidth) cut = cut.slice(0, -1);
+  return `${cut}…`;
+}
+
+function fillCard(ctx, x, y, w, h, r) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 20, 40, 0.18)';
+  ctx.shadowBlur = 40;
+  ctx.shadowOffsetY = 12;
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, x, y, w, h, r);
+  ctx.fill();
+  ctx.restore();
+}
+
+async function drawResultImage() {
+  const { code, matches } = state.result;
+  const type = TYPES[code];
+  const animals = matches.map((m) => findAnimal(m.id));
+  const noun = friendNoun(state.answers);
+  const gender = state.answers.gender || CONFIG.fallbackGender;
+  const footer = '위액트에서 가족을 기다리는 친구들을 만나 보세요';
+
+  // 글꼴이 글자 단위로 나뉘어 있어서, 그릴 글자가 든 조각을 먼저 받아 둠
+  const allText = [
+    '위액트 입양파티 나의 운명 찾기 당신은 TOP 궁합 위 % weactkorea.org',
+    footer, type.name, type.tagline, code, noun,
+    ...animals.flatMap((a) => [a.name, animalMeta(a), ...a.keywords]),
+  ].join(' ');
+  if (document.fonts) {
+    await Promise.all([600, 800].map((w) => document.fonts.load(canvasFont(w, 40), allText))).catch(() => {});
+  }
+
+  const [character, ...photos] = await Promise.all([
+    loadImage(CONFIG.typeImage(gender, code)).then(
+      (image) => image || loadImage(CONFIG.typeImage(CONFIG.fallbackGender, code))
+    ),
+    ...animals.map((a) => loadImage(CONFIG.photo(a.photos[0]))),
+  ]);
+
+  const W = 1080;
+  const H = 1920;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#086872');
+  bg.addColorStop(1, '#064265');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+  ctx.font = canvasFont(700, 30);
+  ctx.fillText('위액트 입양파티', W / 2, 108);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = canvasFont(800, 46);
+  ctx.fillText('나의 운명 친구 찾기', W / 2, 166);
+
+  // 보호자 유형 카드
+  fillCard(ctx, 60, 215, 960, 830, 48);
+  ctx.fillStyle = '#5b6b70';
+  ctx.font = canvasFont(600, 34);
+  ctx.fillText('당신은', W / 2, 285);
+  if (character) ctx.drawImage(character, 300, 305, 480, 480);
+
+  const badgeColors = ['#086872', '#2c57a7', '#146d63'];
+  code.split('').forEach((letter, i) => {
+    const x = W / 2 - 112 + i * 78;
+    ctx.fillStyle = badgeColors[i];
+    roundRect(ctx, x, 800, 68, 68, 18);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = canvasFont(800, 38);
+    ctx.fillText(letter, x + 34, 848);
+  });
+
+  ctx.fillStyle = '#064265';
+  ctx.font = canvasFont(800, 80);
+  ctx.fillText(type.name, W / 2, 962);
+  ctx.fillStyle = '#086872';
+  ctx.font = canvasFont(600, 36);
+  ctx.fillText(fitText(ctx, type.tagline, 880), W / 2, 1010);
+
+  // 운명 친구 TOP 3
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = canvasFont(800, 50);
+  ctx.fillText(`나의 운명 ${noun}` + (matches.length > 1 ? ` TOP ${matches.length}` : ''), 60, 1125);
+
+  matches.forEach((match, i) => {
+    const animal = animals[i];
+    const y = 1160 + i * 220;
+    const right = 996;
+    fillCard(ctx, 60, y, 960, 200, 36);
+
+    ctx.save();
+    roundRect(ctx, 84, y + 20, 160, 160, 24);
+    ctx.clip();
+    ctx.fillStyle = '#e8f3f3';
+    ctx.fillRect(84, y + 20, 160, 160);
+    if (photos[i]) ctx.drawImage(photos[i], 84, y + 20, 160, 160);
+    ctx.restore();
+
+    ctx.fillStyle = '#064265';
+    roundRect(ctx, 94, y + 30, 76, 40, 20);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = canvasFont(800, 26);
+    ctx.textAlign = 'center';
+    ctx.fillText(`${i + 1}위`, 132, y + 59);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#086872';
+    ctx.font = canvasFont(800, 52);
+    ctx.fillText(`${match.percent}%`, right, y + 78);
+    const percentWidth = ctx.measureText(`${match.percent}%`).width;
+    ctx.fillStyle = '#5b6b70';
+    ctx.font = canvasFont(600, 28);
+    ctx.fillText('궁합 ', right - percentWidth - 4, y + 78);
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#16282f';
+    ctx.font = canvasFont(800, 50);
+    ctx.fillText(fitText(ctx, animal.name, 420), 276, y + 78);
+    ctx.fillStyle = '#5b6b70';
+    ctx.font = canvasFont(500, 28);
+    ctx.fillText(fitText(ctx, animalMeta(animal), right - 276), 276, y + 122);
+
+    let chipX = 276;
+    ctx.font = canvasFont(600, 26);
+    animal.keywords.forEach((keyword) => {
+      const chipW = ctx.measureText(keyword).width + 36;
+      if (chipX + chipW > right) return;
+      ctx.fillStyle = '#e8f3f3';
+      roundRect(ctx, chipX, y + 142, chipW, 40, 20);
+      ctx.fill();
+      ctx.fillStyle = '#005b69';
+      ctx.fillText(keyword, chipX + 18, y + 171);
+      chipX += chipW + 10;
+    });
+  });
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  ctx.font = canvasFont(600, 30);
+  ctx.fillText(footer, W / 2, 1852);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.font = canvasFont(600, 26);
+  ctx.fillText('weactkorea.org', W / 2, 1892);
+
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+}
+
+async function openSaveSheet() {
+  const node = saveSheet.node;
+  if (!node.hidden) return;
+  node.hidden = false;
+  document.body.classList.add('is-locked');
+  $('.modal__close', node).focus({ preventScroll: true });
+
+  const image = $('.save__image', node);
+  const status = $('.save__status', node);
+  const button = $('[data-action="save-image"]', node);
+  if (saveSheet.result === state.result && saveSheet.url) return;
+
+  image.hidden = true;
+  status.hidden = false;
+  status.textContent = '이미지를 만드는 중…';
+  button.disabled = true;
+
+  const result = state.result;
+  let blob = null;
+  try {
+    blob = await drawResultImage();
+  } catch (error) {
+    blob = null;
+  }
+  if (result !== state.result) return;
+  if (!blob) {
+    status.textContent = '이미지를 만들지 못했어요. 결과 화면을 캡처해 주세요.';
+    return;
+  }
+
+  if (saveSheet.url) URL.revokeObjectURL(saveSheet.url);
+  Object.assign(saveSheet, { blob, url: URL.createObjectURL(blob), result });
+  image.src = saveSheet.url;
+  image.hidden = false;
+  status.hidden = true;
+  button.disabled = false;
+  track('save_open', { type: result.code });
+}
+
+function closeSaveSheet() {
+  if (!saveSheet.node || saveSheet.node.hidden) return;
+  saveSheet.node.hidden = true;
+  document.body.classList.remove('is-locked');
+}
+
+async function saveResultImage() {
+  if (!saveSheet.blob) return;
+  const filename = `위액트_운명친구_${TYPES[state.result.code].name.replace(/\s/g, '')}.png`;
+  const file = new File([saveSheet.blob], filename, { type: 'image/png' });
+
+  // 휴대폰은 공유 창의 ‘이미지 저장’으로 사진첩에 바로 저장할 수 있음
+  const isTouch = window.matchMedia('(pointer: coarse)').matches;
+  if (isTouch && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file] });
+      track('save_image', { method: 'share' });
+      return;
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+    }
+  }
+
+  const link = el('a', { href: saveSheet.url, download: filename });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  showToast('이미지를 내려받았어요.');
+  track('save_image', { method: 'download' });
+}
+
 /* ---------- 공유 ---------- */
 
 // 공유 링크: ?shared=ATG-f → 받은 사람의 시작 화면에 친구의 유형을 보여 줌
@@ -1928,6 +2189,7 @@ function init() {
     screens[node.dataset.screen] = node;
   });
   modal.node = $('#friend-modal');
+  saveSheet.node = $('#save-modal');
 
   document.querySelectorAll('[data-link="more"]').forEach((link) => {
     link.href = withUtm(CONFIG.listUrl);
@@ -1956,6 +2218,10 @@ function init() {
         navigate('start');
       } else if (name === 'share') {
         shareResult();
+      } else if (name === 'save') {
+        navigate('save');
+      } else if (name === 'save-image') {
+        saveResultImage();
       } else if (name === 'widen') {
         state.answers.species = Object.keys(SPECIES);
         track('widen');
@@ -1978,7 +2244,7 @@ function init() {
   });
 
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !modal.node.hidden) requestCloseModal();
+    if (event.key === 'Escape' && (!modal.node.hidden || !saveSheet.node.hidden)) requestCloseModal();
   });
 
   $('.gallery__track', modal.node).addEventListener('scroll', updateGalleryCount, { passive: true });
