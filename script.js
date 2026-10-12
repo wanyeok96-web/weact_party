@@ -12,7 +12,7 @@ const CONFIG = {
   // 위액트 원본 사진을 800px(상세)·240px(결과 카드) WebP로 줄여 함께 배포함
   photo: (file) => `./images/animals/${file.replace(/\.\w+$/, '')}.webp`,
   thumb: (file) => `./images/animals/thumb/${file.replace(/\.\w+$/, '')}.webp`,
-  typeImage: (gender, code) => `./images/types/${gender}/${code}.webp`,
+  typeImage: (gender, code) => `./images/types/${gender}/${code}.webp?v=2`,
   fallbackGender: 'male',
   utm: 'utm_source=adoption_party&utm_medium=friend_match',
   // 구글 앱스 스크립트 웹앱 주소를 넣으면 응답·클릭 기록이 전송됨
@@ -1564,6 +1564,7 @@ function preloadImages(urls) {
   urls.forEach((url) => {
     const image = new Image();
     image.decoding = 'async';
+    image.fetchPriority = 'high';
     image.src = url;
   });
 }
