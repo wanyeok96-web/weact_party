@@ -9,7 +9,9 @@ const CONFIG = {
   listUrl: 'https://weactkorea.org/base/adopt/dogs.php',
   profileUrl: (id) =>
     `https://weactkorea.org/base/adopt/adoptable.php?com_board_basic=read_form&com_board_idx=${id}&com_board_id=11`,
-  photoBase: 'https://weactkorea.org/base/img/adopt/',
+  // 위액트 원본 사진을 800px(상세)·240px(결과 카드) WebP로 줄여 함께 배포함
+  photo: (file) => `./images/animals/${file.replace(/\.\w+$/, '')}.webp`,
+  thumb: (file) => `./images/animals/thumb/${file.replace(/\.\w+$/, '')}.webp`,
   typeImage: (gender, code) => `./images/types/${gender}/${code}.webp`,
   fallbackGender: 'male',
   utm: 'utm_source=adoption_party&utm_medium=friend_match',
@@ -1338,10 +1340,6 @@ function friendNoun(answers) {
   return species.length === 1 ? SPECIES[species[0]].label : '친구';
 }
 
-function photoUrl(file) {
-  return CONFIG.photoBase + file;
-}
-
 function withUtm(url) {
   return url + (url.includes('?') ? '&' : '?') + CONFIG.utm;
 }
@@ -1552,8 +1550,22 @@ function finishSurvey() {
     matches: matches.map((m) => m.id),
   });
 
+  preloadImages([
+    CONFIG.typeImage(state.answers.gender || CONFIG.fallbackGender, code),
+    ...matches.map((m) => CONFIG.thumb(findAnimal(m.id).photos[0])),
+  ]);
+
   showScreen('loading');
   loadingTimer = setTimeout(() => navigate('result'), CONFIG.loadingMs);
+}
+
+// 로딩 화면이 도는 동안 결과 화면 이미지를 미리 받아 둠
+function preloadImages(urls) {
+  urls.forEach((url) => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = url;
+  });
 }
 
 /* ---------- 결과 ---------- */
@@ -1626,7 +1638,7 @@ function renderResult() {
           { type: 'button', class: 'match-card', onclick: () => navigate(`friend/${animal.id}`) },
           [
             el('div', { class: 'match-card__photo' }, [
-              el('img', { src: photoUrl(animal.photos[0]), alt: animal.name, loading: 'lazy', decoding: 'async' }),
+              el('img', { src: CONFIG.thumb(animal.photos[0]), alt: animal.name, width: 240, height: 240, decoding: 'async' }),
               el('span', { class: 'match-card__rank', text: `${i + 1}위` }),
             ]),
             el('div', { class: 'match-card__body' }, [
@@ -1667,7 +1679,14 @@ function openModal(animal) {
   const gallery = $('.gallery__track', node);
   gallery.replaceChildren(
     ...animal.photos.map((file, i) =>
-      el('img', { src: photoUrl(file), alt: `${animal.name} 사진 ${i + 1}`, loading: i ? 'lazy' : 'eager', decoding: 'async' })
+      el('img', {
+        src: CONFIG.photo(file),
+        alt: `${animal.name} 사진 ${i + 1}`,
+        width: 800,
+        height: 800,
+        loading: i ? 'lazy' : 'eager',
+        decoding: 'async',
+      })
     )
   );
   gallery.scrollLeft = 0;
