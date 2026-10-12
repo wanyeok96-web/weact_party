@@ -1829,6 +1829,96 @@ function updateGalleryCount() {
   $('.gallery__count', modal.node).textContent = `${Math.min(index, total)} / ${total}`;
 }
 
+/* ---------- 공유 ---------- */
+
+// 공유 링크: ?shared=ATG-f → 받은 사람의 시작 화면에 친구의 유형을 보여 줌
+function shareUrl() {
+  const gender = state.answers.gender === 'female' ? 'f' : 'm';
+  return `${location.origin}${location.pathname}?shared=${state.result.code}-${gender}`;
+}
+
+function shareMessage() {
+  const { code, matches } = state.result;
+  const noun = friendNoun(state.answers);
+  const first = findAnimal(matches[0].id);
+  return (
+    `나는 ‘${TYPES[code].name}’ 유형! 나의 운명 ${noun}${josa(noun, '은', '는')} ` +
+    `${first.name}${josa(first.name, '이래요', '래요')}. 위액트 입양파티에서 나와 꼭 맞는 친구를 찾아보세요.`
+  );
+}
+
+async function shareResult() {
+  const url = shareUrl();
+  const text = shareMessage();
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: document.title, text, url });
+      track('share', { method: 'native', type: state.result.code });
+      return;
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+    }
+  }
+
+  if (await copyText(`${text}\n${url}`)) {
+    showToast('링크를 복사했어요. 붙여 넣어 공유해 주세요.');
+    track('share', { method: 'copy', type: state.result.code });
+  } else {
+    window.prompt('아래 링크를 복사해 공유해 주세요.', url);
+  }
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (error) {
+    // 일부 인앱 브라우저는 클립보드 API를 막아 두므로 예전 방식으로 한 번 더 시도
+    const area = el('textarea', { readonly: '', style: 'position:fixed;top:0;opacity:0' });
+    area.value = text;
+    document.body.append(area);
+    area.select();
+    let copied = false;
+    try {
+      copied = document.execCommand('copy');
+    } catch (e) {
+      copied = false;
+    }
+    area.remove();
+    return copied;
+  }
+}
+
+let toastTimer = null;
+
+function showToast(message) {
+  const toast = $('.toast');
+  toast.textContent = message;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.hidden = true;
+  }, 2800);
+}
+
+function renderSharedBanner() {
+  const match = /^([AS][TI][GW])-([mf])$/.exec(new URLSearchParams(location.search).get('shared') || '');
+  if (!match || !TYPES[match[1]]) return;
+
+  const [, code, g] = match;
+  const banner = $('.shared');
+  const image = $('.shared__image', banner);
+  image.alt = `${TYPES[code].name} 캐릭터`;
+  image.onerror = () => {
+    image.hidden = true;
+  };
+  image.src = CONFIG.typeImage(g === 'f' ? 'female' : 'male', code);
+  $('.shared__text', banner).textContent = `친구는 ‘${TYPES[code].name}’ 유형이에요.`;
+  banner.hidden = false;
+  track('shared_visit', { type: code });
+}
+
 /* =========================================================
  * 시작
  * ========================================================= */
@@ -1864,6 +1954,8 @@ function init() {
         saveState();
         track('restart');
         navigate('start');
+      } else if (name === 'share') {
+        shareResult();
       } else if (name === 'widen') {
         state.answers.species = Object.keys(SPECIES);
         track('widen');
@@ -1892,6 +1984,7 @@ function init() {
   $('.gallery__track', modal.node).addEventListener('scroll', updateGalleryCount, { passive: true });
   window.addEventListener('popstate', render);
 
+  renderSharedBanner();
   if (!location.hash) history.replaceState(null, '', '#start');
   render();
 }
