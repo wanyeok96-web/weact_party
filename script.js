@@ -13,6 +13,7 @@ const CONFIG = {
   photo: (file) => `./images/animals/${file.replace(/\.\w+$/, '')}.webp`,
   thumb: (file) => `./images/animals/thumb/${file.replace(/\.\w+$/, '')}.webp`,
   typeImage: (gender, code) => `./images/types/${gender}/${code}.webp?v=2`,
+  loadingImage: './images/hero/friends.webp',
   fallbackGender: 'male',
   utm: 'utm_source=adoption_party&utm_medium=friend_match',
   // 구글 앱스 스크립트 웹앱 주소를 넣으면 응답·클릭 기록이 전송됨
@@ -1423,6 +1424,7 @@ function showScreen(name) {
   Object.entries(screens).forEach(([key, node]) => {
     node.hidden = key !== name;
   });
+  document.body.dataset.screen = name;
   if (name !== 'result') {
     closeModal();
     closeSaveSheet();
@@ -1454,6 +1456,8 @@ function renderSurvey(id) {
   const question = list[index];
   const node = screens.survey;
   showScreen('survey');
+
+  primeLoadingImage();
 
   const counted = QUESTIONS.filter(
     (q) => !q.intro && (!q.when || q.when(state.answers) || state.answers.experience == null)
@@ -1560,8 +1564,15 @@ function finishSurvey() {
     ...matches.map((m) => CONFIG.thumb(findAnimal(m.id).photos[0])),
   ]);
 
+  primeLoadingImage();
   showScreen('loading');
   loadingTimer = setTimeout(() => navigate('result'), CONFIG.loadingMs);
+}
+
+// 첫 화면 그림과 동시에 받지 않도록, 로딩 화면 그림은 설문이 시작된 뒤에 받음
+function primeLoadingImage() {
+  const image = $('.loading__friends');
+  if (!image.getAttribute('src')) image.src = CONFIG.loadingImage;
 }
 
 // 로딩 화면이 도는 동안 결과 화면 이미지를 미리 받아 둠
